@@ -1145,12 +1145,12 @@ class _MobileSelectionToolbarController implements MobileSelectionToolbarControl
       return;
     }
     final OverlayEntry entry = OverlayEntry(
-      builder: (_) => _SelectionToolbarWrapper(
+      builder: (overlayContext) => _SelectionToolbarWrapper(
         visibility: visibility,
         layerLink: layerLink,
         offset: -renderRect!.topLeft,
         child: builder(
-          context: context,
+          context: overlayContext,
           anchors: anchors,
           controller: controller,
           onDismiss: () {
