@@ -417,7 +417,7 @@ class _CodeSelectionGestureDetectorState extends State<_CodeSelectionGestureDete
           return;
         }
         renderObject.autoScrollWhenDragging(_dragPosition!);
-        _extendSelection(_dragPosition!, _SelectionChangedCause.drag);
+        _extendSelection(_dragPosition!, _SelectionChangedCause.drag, _currentSelectionMode);
       }
       _autoScrollWhenDragging();
     }));
