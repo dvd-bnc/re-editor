@@ -7,6 +7,7 @@ class CodeEditorStyle {
   const CodeEditorStyle({
     this.fontSize,
     this.fontFamily,
+    this.fontFamilyFallback,
     this.fontHeight,
     this.textColor,
     this.hintTextColor,
@@ -46,6 +47,29 @@ class CodeEditorStyle {
   /// family. When neither is provided, then the default platform font will
   /// be used.
   final String? fontFamily;
+
+  /// The ordered list of font families to fall back on when a glyph cannot be
+  /// found in a higher priority font family.
+  ///
+  /// The value provided in [fontFamily] will act as the preferred/first font
+  /// family that glyphs are looked for in, followed in order by the font families
+  /// in [fontFamilyFallback]. If all font families are exhausted and no match
+  /// was found, the default platform font family will be used instead.
+  ///
+  /// When [fontFamily] is null or not provided, the first value in [fontFamilyFallback]
+  /// acts as the preferred/first font family. When neither is provided, then
+  /// the default platform font will be used. Providing an empty list or null
+  /// for this property is the same as omitting it.
+  ///
+  /// For example, if a glyph is not found in [fontFamily], then each font family
+  /// in [fontFamilyFallback] will be searched in order until it is found. If it
+  /// is not found, then a box will be drawn in its place.
+  ///
+  /// If the font is defined in a package, each font family in the list will be
+  /// prefixed with 'packages/package_name/' (e.g. 'packages/cool_fonts/Roboto').
+  /// The package name should be provided by the `package` argument in the
+  /// constructor.
+  final List<String>? fontFamilyFallback;
 
   /// The height of this text span, as a multiple of the font size.
   ///
@@ -174,7 +198,7 @@ class CodeEditor extends StatefulWidget {
     this.findBuilder,
     this.shortcutsActivatorsBuilder,
     this.shortcutOverrideActions,
-    this.sperator,
+    this.leadingDivider,
     this.border,
     this.borderRadius,
     this.clipBehavior = Clip.none,
@@ -187,7 +211,7 @@ class CodeEditor extends StatefulWidget {
     this.maxLengthSingleLineRendering,
     this.chunkAnalyzer,
     this.commentFormatter,
-  }) : assert(indicatorBuilder != null || (indicatorBuilder == null && sperator == null));
+  }) : assert(indicatorBuilder != null || (indicatorBuilder == null && leadingDivider == null));
 
   /// Similar to [TextField], editor uses [CodeLineEditingController] as the content controller.
   final CodeLineEditingController? controller;
@@ -244,8 +268,8 @@ class CodeEditor extends StatefulWidget {
   /// Override built-in shortcut key actions.
   final Map<Type, Action<Intent>>? shortcutOverrideActions;
 
-  /// A sperator widget between indicator and editor field.
-  final Widget? sperator;
+  /// A leadingDivider widget between indicator and editor field.
+  final Widget? leadingDivider;
 
   /// The border of the editor.
   final Border? border;
@@ -296,7 +320,7 @@ class CodeEditor extends StatefulWidget {
 
   /// The maximum number of characters per line to render.
   ///
-  /// Due to the performance limitations of the Skia text engine, 
+  /// Due to the performance limitations of the Skia text engine,
   /// setting a reasonable length can improve the performance of the editor.
   ///
   /// If null, there is no limit.
@@ -438,11 +462,13 @@ class _CodeEditorState extends State<CodeEditor> {
       _editingController.bindEditor(_editorKey);
     }
     if (oldWidget.findController != widget.findController || oldWidget.controller != widget.controller) {
+      final CodeFindController oldFindController = _findController;
       if (oldWidget.findController == null) {
-        _findController.dispose();
+        oldFindController.dispose();
+      } else {
+        oldFindController.removeListener(_updateWidget);
       }
       _findController = widget.findController ?? CodeFindController(_editingController);
-      _findController.removeListener(_updateWidget);
       _findController.addListener(_updateWidget);
     }
     if (oldWidget.scrollController != widget.scrollController) {
@@ -472,6 +498,7 @@ class _CodeEditorState extends State<CodeEditor> {
     final TextStyle baseStyle = TextStyle(
       fontSize: widget.style?.fontSize ?? _kDefaultTextSize,
       fontFamily: widget.style?.fontFamily,
+      fontFamilyFallback: widget.style?.fontFamilyFallback,
       height: widget.style?.fontHeight ?? _kDefaultFontHeight,
     );
     final bool readOnly = widget.readOnly ?? false;
@@ -498,7 +525,7 @@ class _CodeEditorState extends State<CodeEditor> {
       chunkIndicatorColor: widget.style?.chunkIndicatorColor,
       cursorWidth: widget.style?.cursorWidth ?? _kDefaultCaretWidth,
       showCursorWhenReadOnly: widget.showCursorWhenReadOnly ?? true,
-      sperator: widget.sperator,
+      leadingDivider: widget.leadingDivider,
       border: widget.border,
       borderRadius: widget.borderRadius,
       clipBehavior: widget.clipBehavior,

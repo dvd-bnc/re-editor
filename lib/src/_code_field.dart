@@ -520,6 +520,8 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
     markNeedsPaint();
   }
 
+  int? get maxLengthSingleLineRendering => _maxLengthSingleLineRendering;
+
   set maxLengthSingleLineRendering(int? value) {
     if (_maxLengthSingleLineRendering == value) {
       return;
@@ -643,6 +645,11 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
       }
       if (tryCount < 10) {
         SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+          // Check whether the viewport is still valid.
+          final ViewportOffset viewport = _verticalViewport;
+          if (viewport is ScrollPosition && viewport.context.notificationContext == null) {
+            return;
+          }
           makePositionVisible(position, tryCount + 1);
         });
       }
@@ -676,12 +683,12 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
       if (_displayParagraphs.isNotEmpty) {
         final CodeLineRenderParagraph first = _displayParagraphs.first;
         if (position.index < first.index) {
-          final target = max(0, first.top - _preferredLineHeight * (first.index - position.index) - size.height / 2);
+          final double target = max(0, first.top - _preferredLineHeight * (first.index - position.index) - size.height / 2);
           scrollViewport(_verticalViewport, target);
         }
         final CodeLineRenderParagraph last = _displayParagraphs.last;
         if (position.index > last.index) {
-          final target = min(
+          final double target = min(
             _verticalViewportSize!,
             last.bottom + size.height / 2 + _preferredLineHeight * (position.index - first.index),
           );
@@ -690,17 +697,21 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
       }
       if (tryCount < 10) {
         SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+          // Check whether the viewport is still valid.
+          final ViewportOffset viewport = _verticalViewport;
+          if (viewport is ScrollPosition && viewport.context.notificationContext == null) {
+            return;
+          }
           makePositionCenterIfInvisible(position, tryCount: tryCount + 1);
         });
       }
       return;
     }
-
-    if (offset.dy < 0) {
-      final target = max(0, _verticalViewport.pixels + offset.dy - size.height / 2);
+    if (offset.dy < paddingTop) {
+      final double target = max(0, _verticalViewport.pixels + offset.dy - size.height / 2);
       scrollViewport(_verticalViewport, target);
-    } else if (offset.dy > size.height - _preferredLineHeight) {
-      final target = min(
+    } else if (offset.dy > size.height - _preferredLineHeight - paddingBottom) {
+      final double target = min(
         _verticalViewportSize!,
         _verticalViewport.pixels + offset.dy + _preferredLineHeight - size.height / 2,
       );
@@ -722,6 +733,7 @@ class _CodeFieldRender extends RenderBox implements MouseTrackerAnnotation {
   }
 
   void forceRepaint() {
+    _highlighter.clearCache();
     _displayParagraphs.clear();
     _updateDisplayRenderParagraphs();
     markNeedsPaint();
